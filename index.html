@@ -1345,7 +1345,7 @@ SAMPLE.extra=[
   sources:['한국장학재단 학자금 대출 안내(2026학년도) — 링커리어(2026.9) 정리']}
 ];
 </script>
-<script>window.HJ_CLOUD={"url": "https://qdjdcaaftpznzvjhmmgt.supabase.co", "key": "sb_publishable_B2RknsbS_zQEJsVvjORkoQ_tod7UKrm", "fn": "hanjang-claude"};
+<script>window.HJ_CLOUD={"url": "https://qdjdcaaftpznzvjhmmgt.supabase.co", "key": "sb_publishable_B2RknsbS_zQEJsVvjORkoQ_tod7UKrm", "fn": "hanjang-claude", "site": "https://woobin-1018.github.io/hanjang/"};
 /* 한장 — 생성기 화면
    교재 13장 흐름: 요청 → 디자인 → 지침·구성안(승인) → 제작 → 검수·발표 */
 (function(){
@@ -1376,12 +1376,27 @@ function clSave(){try{CS.sess?localStorage.setItem('hj_sess',JSON.stringify(CS.s
 if(CL){
   try{CS.sess=JSON.parse(localStorage.getItem('hj_sess')||'null')}catch(e){}
   var hp=new URLSearchParams(location.hash.slice(1));
-  if(hp.get('access_token')){CS.sess={at:hp.get('access_token'),rt:hp.get('refresh_token'),exp:Date.now()/1000+(+hp.get('expires_in')||3600)};clSave();history.replaceState(null,'',location.pathname+location.search)}
+  // 파일로 연 생성기의 로그인 창 역할: #hj_handoff=번호 로 열리면 바로 Google 로그인으로 보냄
+  if(hp.get('hj_handoff')){try{sessionStorage.setItem('hj_handoff',hp.get('hj_handoff'))}catch(e){}location.replace(CL.url+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(location.origin+location.pathname))}
+  if(hp.get('access_token')){CS.sess={at:hp.get('access_token'),rt:hp.get('refresh_token'),exp:Date.now()/1000+(+hp.get('expires_in')||3600)};clSave();history.replaceState(null,'',location.pathname+location.search);
+    var hn='';try{hn=sessionStorage.getItem('hj_handoff')||'';sessionStorage.removeItem('hj_handoff')}catch(e){}
+    if(hn)clHandOut(hn)}
   else if(hp.get('error')){setTimeout(function(){toast('로그인하지 못했어요: '+(hp.get('error_description')||hp.get('error')))},800);history.replaceState(null,'',location.pathname+location.search)}
   online=function(){return !!CS.sess};
 }
 function clUser(){var p=CS.sess?b64j(CS.sess.at):{};var m=p.user_metadata||{};return {id:p.sub,email:p.email||'',name:m.full_name||m.name||(p.email||'').split('@')[0]}}
-function clLogin(){location.href=CL.url+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(location.origin+location.pathname)}
+function clHere(){return location.protocol==='https:'&&CL.site&&(location.origin+location.pathname).indexOf(CL.site.replace(/\/$/,''))===0}
+function clLogin(){if(clHere()||location.protocol==='https:'&&!CL.site)return location.href=CL.url+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(location.origin+location.pathname);
+  // 파일로 연 경우: 웹 주소의 로그인 창을 띄우고, 로그인이 끝나면 이쪽으로 받아 옴
+  var a=new Uint8Array(24);crypto.getRandomValues(a);var n=Array.prototype.map.call(a,function(x){return ('0'+x.toString(16)).slice(-2)}).join('');
+  var w=window.open(CL.site+'#hj_handoff='+n,'hj_login','width=520,height=700');if(!w){toast('팝업이 막혔어요. 주소창 오른쪽에서 팝업을 허용해 주세요',4000);return}
+  $('#bConn span').textContent='로그인 창에서 계속해 주세요…';var t0=Date.now();
+  (function poll(){if(Date.now()-t0>300000){connUI();return toast('로그인 시간이 지났어요. 다시 눌러 주세요')}
+    fetch(CL.url+'/rest/v1/rpc/claim_handoff',{method:'POST',headers:{apikey:CL.key,'content-type':'application/json'},body:JSON.stringify({p_nonce:n})})
+     .then(function(r){return r.ok?r.json():null}).then(function(j){if(j&&j.at){CS.sess={at:j.at,rt:j.rt,exp:+j.exp};clSave();connUI();clUsage();toast(clUser().name+'님, 로그인했어요');try{w.close()}catch(e){}}else setTimeout(poll,2000)})
+     .catch(function(){setTimeout(poll,2500)})})()}
+function clHandOut(n){fetch(CL.url+'/rest/v1/handoff',{method:'POST',headers:{apikey:CL.key,authorization:'Bearer '+CS.sess.at,'content-type':'application/json',prefer:'return=minimal'},body:JSON.stringify({nonce:n,at:CS.sess.at,rt:CS.sess.rt,exp:Math.round(CS.sess.exp)})})
+  .then(function(r){var d=document.createElement('div');d.className='pop';d.innerHTML='<div class="pb"><h3>'+(r.ok?'로그인했어요':'로그인을 넘기지 못했어요')+'</h3><p>'+(r.ok?'이 창을 닫고 원래 파일로 돌아가면 바로 만들 수 있어요.':'원래 파일에서 다시 로그인해 주세요.')+'</p><div class="acts"><button class="btn pri" data-v="1">창 닫기</button></div></div>';document.body.appendChild(d);d.querySelector('button').onclick=function(){window.close()};if(r.ok)setTimeout(function(){window.close()},1800)})}
 function clLogout(){CS.sess=null;CS.left=null;clSave();connUI();toast('로그아웃했어요')}
 async function clToken(){if(!CS.sess)throw new Error('로그인이 필요해요');
   if(CS.sess.exp-90<Date.now()/1000){var r=await fetch(CL.url+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:CL.key,'content-type':'application/json'},body:JSON.stringify({refresh_token:CS.sess.rt})});
