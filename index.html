@@ -277,6 +277,7 @@ p.d{margin:0 0 26px;color:var(--t2);font-size:16px;line-height:1.6}
 .savewarn i{font-style:normal;width:18px;height:18px;border-radius:50%;background:#FFF3E0;color:#E8880C;display:grid;place-items:center;font-size:12px;font-weight:800;flex:none}
 .etcin{margin-top:10px;background:#fff;border:1.5px solid #D1D6DB;animation:etcIn .25s var(--out) both}.etcin:focus{border-color:var(--blue)}
 @keyframes etcIn{from{opacity:0;transform:translateY(-6px)}}
+.dc.popin{animation:dcPop .45s var(--spring) both}@keyframes dcPop{from{opacity:0;transform:scale(.92)}}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{height:40px;padding:0 16px;border:0;background:var(--bg);border-radius:20px;font-size:14.5px;font-weight:700;color:var(--t2)}
 .chip:hover{background:#E5E8EB}
@@ -1597,7 +1598,9 @@ async function enterDesign(){bar();if(S.recs){drawRecs();return}
   }catch(err){S.recs=localRecs().map(function(x){return {d:x.d,why:x.why,badge:'목록에서 고름'}});$('#recInfo').textContent='검색 추천에 실패해 목록에서 골랐어요 ('+err.message+')';drawRecs()}}
 function drawRecs(){var g=$('#recGrid');g.innerHTML='';S.recs.forEach(function(r,i){keyOf(r.d,'rec'+i);g.appendChild(dcard(r.d,r.why,r.badge))});
   if(!S.design&&S.recs[0]){S.design=S.recs[0].d;g.firstChild.classList.add('on');bar()}}
-$('#bAllD').onclick=function(){$('#allSheet').hidden=false;var a=$('#allGrid');if(!a.childNodes.length)DESIGNS.forEach(function(d){keyOf(d,'lib');var c=dcard(d,d.mood,'');c.addEventListener('click',function(){setTimeout(function(){closeS($('#allSheet'));$$('#recGrid .dc').forEach(function(x){x.classList.remove('on')});toast(d.name+' 디자인을 골랐어요')},250)});a.appendChild(c)})};
+$('#bAllD').onclick=function(){$('#allSheet').hidden=false;var a=$('#allGrid');if(!a.childNodes.length)DESIGNS.forEach(function(d){keyOf(d,'lib');var c=dcard(d,d.mood,'');c.addEventListener('click',function(){setTimeout(function(){closeS($('#allSheet'));var g=$('#recGrid');$$('.dc',g).forEach(function(x){x.classList.remove('on')});
+    var old=$('.dc.fromLib',g);if(old)old.remove();var nc=dcard(d,d.mood,'직접 고름');nc.classList.add('fromLib','on','popin');
+    if(g.children.length>=4)g.removeChild(g.lastChild);g.insertBefore(nc,g.firstChild);S.design=d;bar();nc.scrollIntoView({block:'nearest',behavior:'smooth'});toast(d.name+' 디자인을 골랐어요')},250)});a.appendChild(c)})};
 $('#bAllClose').onclick=function(){closeS($('#allSheet'))};$('#allSheet').onclick=function(e){if(e.target===this)closeS(this)};
 function normD(n,src){var p=n.pal||{};function hx(c,f){return /^#[0-9a-f]{6}$/i.test(c||'')?c:f}
   var d={id:'x'+Math.random().toString(36).slice(2,7),name:n.name||'새 디자인',src:src,mood:n.why||'',tags:[],style:STYLES.indexOf(n.style)>=0?n.style:'minimal',head:n.head==='serif'?'serif':'sans',radius:Math.max(0,Math.min(8,+n.radius||0)),motion:/calm|crisp|lively/.test(n.motion)?n.motion:'calm',
